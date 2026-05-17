@@ -1,135 +1,119 @@
 # Automated Visitor Counter
 
-## Overview
+## Introduction to the Problem and the Solution
 
-The Automated Visitor Counter is our embedded systems project developed using the ATmega328P microcontroller. The purpose of this project is to monitor the number of visitors entering and exiting a monitored area in real time using infrared (IR) sensors and external interrupts.
+Monitoring the number of visitors manually in classrooms, laboratories, offices, or public areas can become inefficient and unreliable, especially when the number of people increases. Overcrowding may create safety problems, poor organization, and difficulty respecting occupancy limits.
 
-The system automatically updates the occupancy count, displays the information on an LCD screen, stores data using EEPROM memory, retrieves timestamps from an RTC module through I2C communication, and activates an alarm system whenever the maximum occupancy limit is reached.
+To solve this problem, we developed an Automated Visitor Counter using the ATmega328P microcontroller. The system automatically detects visitor entry and exit events using infrared sensors connected to external interrupts. The occupancy count is updated in real time, displayed on an LCD screen, and compared with a predefined maximum capacity limit. When the occupancy limit is reached, the system activates an alarm using LEDs and a buzzer.
 
----
-
-# Features
-
-- Real-time visitor counting
-- Entry and exit detection using IR sensors
-- External interrupt handling (INT0 and INT1)
-- LCD occupancy display
-- Occupancy limit monitoring
-- Red and green LED indicators
-- Buzzer alarm activation
-- EEPROM data storage
-- RTC timestamp retrieval
-- USART serial communication
-- Proteus simulation support
+In addition, the project integrates EEPROM memory for data preservation, USART communication for serial monitoring, and an RTC module through I2C communication to generate accurate timestamps for visitor event logging.
 
 ---
 
-# Hardware Components
+# Hardware Design and Implementation Details
+
+## Hardware Components
+
+The system was implemented using the following hardware components:
 
 - Arduino Uno / ATmega328P
 - IR Sensors
 - LCD 16x2 I2C Display
 - DS3231 RTC Module
-- EEPROM (Internal ATmega328P EEPROM)
 - Buzzer
 - Green LED
 - Red LED
 - Breadboard
 - Jumper Wires
 
----
+## Hardware Connections
 
-# Software Tools
+### IR Sensors
 
-- AVR Assembly Language
-- Arduino IDE
-- Proteus
-- GitHub
-- Google Docs
-- Discord
+- Entry sensor → INT0 (Pin 2)
+- Exit sensor → INT1 (Pin 3)
 
----
+### LCD Display
 
-# System Architecture
+The LCD 16x2 display communicates using the I2C protocol through:
 
-```text
-IR Sensors
-     ↓
-External Interrupts (INT0 / INT1)
-     ↓
-ENTRY_FLAG / EXIT_FLAG
-     ↓
-Occupancy Counter Logic
-     ↓
-+-------------------------------+
-| LCD Display                   |
-| EEPROM Logging                |
-| RTC Timestamp Retrieval       |
-| USART Serial Communication    |
-| Alarm System                  |
-+-------------------------------+
-```
+- SDA line
+- SCL line
+
+### Alarm Indicators
+
+- Green LED → Normal operating condition
+- Red LED → Occupancy limit reached
+- Buzzer → Alarm condition
+
+### RTC Module
+
+The DS3231 RTC module is connected using I2C communication to provide real-time timestamps.
+
+## Hardware Operation
+
+When a visitor crosses the entry sensor, the INT0 external interrupt is triggered and the occupancy count increases. When the exit sensor is triggered through INT1, the occupancy count decreases.
+
+The LCD continuously displays the current occupancy value and occupancy limit status. If the number of visitors reaches the predefined limit of 5 visitors, the red LED and buzzer are activated automatically.
 
 ---
 
-# Modules
+# Software Implementation Details
 
-## 1. visitor_counter.S
+The software was implemented entirely in AVR Assembly Language using multiple modules.
 
-Main integration file responsible for initializing and coordinating all modules of the system.
+## visitor_counter.S
+
+Main integration module responsible for initializing and coordinating all system functionalities.
 
 ### Responsibilities
 
 - Initialize peripherals
 - Configure interrupts
 - Start communication modules
-- Coordinate all system functionalities
-
-### Developed By
-
-Everyone
+- Coordinate all modules
 
 ---
 
-## 2. core_interrupt.S
+## core_interrupt.S
 
-Handles external interrupt configuration and visitor event detection.
+Responsible for external interrupt handling and visitor event detection.
 
 ### Features
 
 - Configure INT0 and INT1
 - FALLING EDGE interrupt detection
-- ENTRY_FLAG handling
-- EXIT_FLAG handling
+- ENTRY_FLAG and EXIT_FLAG handling
 - Lightweight ISR implementation
-
-### Developed By
-
-Derryl
 
 ---
 
-## 3. display_timer.S
+## display_timer.S
 
-Handles Timer0 overflow interrupts, LCD updates, and alarm indicators.
+Responsible for Timer0 overflow interrupts, LCD updates, and alarm indicators.
 
 ### Features
 
 - Timer0 configuration
 - LCD display refresh
 - Green and red LED indicators
-- Buzzer activation
+- Buzzer control
 - Occupancy limit monitoring
 
-### Developed By
+### Timer Configuration
 
-Ibrahima
+| Parameter         | Value       |
+| ----------------- | ----------- |
+| Timer             | Timer0      |
+| Mode              | Normal Mode |
+| Prescaler         | 64          |
+| Overflow Interval | ~1.024 ms   |
 
 ---
 
-## 4. data_communications.S
+## data_communications.S
 
-Handles occupancy processing, EEPROM logging, RTC communication, and USART transmission.
+Responsible for occupancy processing, EEPROM logging, RTC communication, and USART transmission.
 
 ### Features
 
@@ -140,67 +124,37 @@ Handles occupancy processing, EEPROM logging, RTC communication, and USART trans
 - USART serial communication
 - UART event logging
 
-### Developed By
-
-Fatih
-
 ---
 
-# Interrupt Configuration
+# Test Results and Performance Evaluation
 
-| Interrupt | Function     |
-| --------- | ------------ |
-| INT0      | Entry sensor |
-| INT1      | Exit sensor  |
+The system was tested using both Proteus simulation and hardware implementation.
 
-Both interrupts are configured on FALLING EDGE detection.
+## Interrupt Testing
 
----
+The IR sensors successfully triggered the INT0 and INT1 external interrupts whenever entry or exit events occurred. The system reacted immediately without requiring continuous polling.
 
-# Occupancy Logic
+## Occupancy Counter Testing
 
-```text
-ENTRY_FLAG → Occupancy + 1
-EXIT_FLAG  → Occupancy - 1
-```
+The occupancy count increased correctly during entry events and decreased correctly during exit events. Additional testing confirmed that the occupancy value never became negative.
 
-Maximum occupancy limit:
+## Alarm Testing
 
-```text
-LIMIT = 5
-```
+When the occupancy reached the maximum limit of 5 visitors:
 
-If occupancy ≥ 5:
+- The red LED activated
+- The buzzer activated
+- The green LED turned off
+- The LCD displayed the warning message
 
-- Red LED ON
-- Buzzer ON
-- Alarm Active
+When the occupancy returned below the limit:
 
-Otherwise:
+- The alarm was disabled
+- The green LED returned to normal operation
 
-- Green LED ON
-- Normal operation
+## USART Testing
 
----
-
-# Timer Configuration
-
-| Parameter     | Value       |
-| ------------- | ----------- |
-| Timer         | Timer0      |
-| Mode          | Normal Mode |
-| Prescaler     | 64          |
-| Overflow Time | ~1.024 ms   |
-
----
-
-# USART Configuration
-
-| Parameter     | Value                    |
-| ------------- | ------------------------ |
-| Communication | UART                     |
-| Baud Rate     | 9600 bps                 |
-| Display       | Proteus Virtual Terminal |
+The USART module successfully transmitted visitor logs to the Proteus Virtual Terminal at 9600 baud.
 
 Example output:
 
@@ -209,104 +163,30 @@ Example output:
 [14:35:02] EXIT  - Occupancy: 4
 ```
 
----
+## EEPROM Testing
 
-# I2C Communication
+The EEPROM module successfully stored occupancy values and restored them after restarting the system.
 
-The ATmega328P communicates with the DS3231 RTC module using the I2C protocol.
+## RTC Testing
 
-## Lines Used
-
-- SDA
-- SCL
-
-## Retrieved Data
-
-- Hours
-- Minutes
-- Seconds
+The DS3231 RTC module successfully provided real-time timestamps through I2C communication.
 
 ---
 
-# EEPROM Storage
+# Conclusion and Future Work
 
-The EEPROM module is used to:
+In conclusion, our Automated Visitor Counter project successfully integrated multiple embedded system concepts including external interrupts, timer interrupts, EEPROM memory, USART communication, I2C communication, RTC timestamping, LCD display control, and alarm handling using the ATmega328P microcontroller.
 
-- Store occupancy values
-- Preserve visitor logs
-- Restore data after reset or power interruption
+The final system operated reliably during both simulation and hardware testing while providing real-time occupancy monitoring and alert management.
 
----
-
-# Testing
-
-The system was tested using:
-
-- Proteus simulation
-- Hardware implementation
-- LCD verification
-- Interrupt testing
-- USART monitoring
-- EEPROM restoration
-- RTC timestamp verification
-
----
-
-# Results
-
-The system successfully:
-
-- Detected visitor entry and exit events
-- Updated occupancy count in real time
-- Activated alarm conditions correctly
-- Displayed occupancy information on LCD
-- Stored data into EEPROM
-- Retrieved RTC timestamps
-- Sent USART logs to the virtual terminal
-
----
-
-# Challenges Encountered
-
-- IR sensor instability in Proteus
-- Interrupt synchronization
-- EEPROM debugging
-- LCD refresh timing
-- Preventing repeated sensor triggering
-
----
-
-# Future Improvements
+## Future Work
 
 Possible future improvements include:
 
-- Wireless monitoring
-- WiFi integration
+- Wireless monitoring system
+- WiFi or Bluetooth integration
 - Mobile application support
-- Cloud data storage
-- OLED display integration
+- Cloud database integration
+- OLED display support
 - Multi-room occupancy management
-
----
-
-# Conclusion
-
-Our Automated Visitor Counter project successfully demonstrated the integration of multiple embedded systems concepts including interrupts, timers, EEPROM memory, USART communication, I2C communication, RTC timestamping, LCD control, and alarm management using the ATmega328P microcontroller.
-
-The final system operated reliably in both simulation and hardware testing environments while providing real-time occupancy monitoring and alert handling.
-
----
-
-# Team Members
-
-| Member   | Responsibility                  |
-| -------- | ------------------------------- |
-| Derryl   | Interrupt and Sensor Management |
-| Ibrahima | Display and Alarm System        |
-| Fatih    | Data Communication and Storage  |
-
----
-
-# License
-
-This project was developed for academic purposes as part of our Embedded Systems course project.
+- Web dashboard monitoring
